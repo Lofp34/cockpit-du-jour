@@ -74,12 +74,12 @@ function render() {
 function options(values, value) { return Object.entries(values).map(([key, text]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${text}</option>`).join(''); }
 function createCard(p) {
   const card = document.createElement('article'); card.className = 'project-card'; card.dataset.id = p.id; card.setAttribute('aria-label', p.title);
-  card.innerHTML = `<header class="pane-header"><div class="pane-heading"><h2><button class="card-open" data-open="${e(p.id)}" title="Agrandir la fiche">${e(p.title)}</button></h2><button class="expand-button" data-open="${e(p.id)}" aria-label="Agrandir ${e(p.title)}">↗</button></div><div class="pane-meta"><select data-field="category" aria-label="Catégorie">${categoryOptions(p.category)}</select><select data-field="status" aria-label="Statut">${options(STATUS, p.status)}</select></div></header><div class="pane-content"><div class="pane-scroll"><label class="next-label">Prochaine action<textarea data-field="next" rows="2" maxlength="500" placeholder="La prochaine action concrète…">${e(p.next)}</textarea></label><div class="pane-columns"><section class="notes-section"><label>Notes persistantes<textarea data-field="notes" rows="5" maxlength="100000" placeholder="Où en êtes-vous ? Décisions, contexte, points à reprendre…">${e(p.notes)}</textarea></label></section><div class="tracking-column"><section class="steps-section"><div class="section-label"><h3>Étapes</h3><span class="pane-step-count"></span></div><ul class="pane-steps"></ul><form data-form="step" class="inline-form"><input name="step" aria-label="Nouvelle étape" maxlength="500" placeholder="Ajouter une étape…" required><button type="submit" aria-label="Ajouter l’étape">＋</button></form></section><section class="pane-journal"><h3>Journal du projet</h3><div class="pane-entries"></div><form data-form="journal" class="inline-form"><textarea name="journal" rows="2" aria-label="Nouvelle entrée au journal" maxlength="20000" placeholder="Une avancée à consigner…" required>${e(state.drafts[p.id] || '')}</textarea><button type="submit" aria-label="Ajouter au journal">＋</button></form></section></div></div><div class="pane-more"><label>Objectif<textarea data-field="description" rows="2" maxlength="10000">${e(p.description)}</textarea></label><div class="pane-planning"><label>Priorité<select data-field="priority">${options(PRIORITY, p.priority)}</select></label><label>Échéance<input type="date" data-field="due" value="${e(p.due)}"></label></div></div></div><div class="done-overlay" hidden><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36"/><path d="m23 40 12 12 23-25"/></svg><strong>C’est fait.</strong><span>Projet terminé</span><div><button data-action="resume">Reprendre</button><button data-open="${e(p.id)}">Consulter la fiche</button></div></div></div>`;
+  card.innerHTML = `<header class="pane-header"><div class="pane-heading"><button class="drag-handle" aria-label="Déplacer ${e(p.title)}" aria-haspopup="dialog" title="Glisser pour déplacer · Cliquer pour choisir une position · Alt + flèches">⠿</button><h2><button class="card-open" aria-label="${e(p.title)}" data-rename="${e(p.id)}" title="Modifier le titre">${e(p.title)}</button><input class="title-editor" aria-label="Titre du projet" maxlength="160" autocomplete="off" hidden></h2><button class="expand-button" data-open="${e(p.id)}" aria-label="Agrandir ${e(p.title)}">↗</button></div><div class="pane-meta"><select data-field="category" aria-label="Catégorie">${categoryOptions(p.category)}</select><select data-field="status" aria-label="Statut">${options(STATUS, p.status)}</select></div></header><div class="pane-content"><div class="pane-scroll"><label class="next-label">Prochaine action<textarea data-field="next" rows="2" maxlength="500" placeholder="La prochaine action concrète…">${e(p.next)}</textarea></label><div class="pane-columns"><section class="notes-section"><label>Notes persistantes<textarea data-field="notes" rows="5" maxlength="100000" placeholder="Où en êtes-vous ? Décisions, contexte, points à reprendre…">${e(p.notes)}</textarea></label></section><div class="tracking-column"><section class="steps-section"><div class="section-label"><h3>Étapes</h3><span class="pane-step-count"></span></div><ul class="pane-steps"></ul><form data-form="step" class="inline-form"><input name="step" aria-label="Nouvelle étape" maxlength="500" placeholder="Ajouter une étape…" required><button type="submit" aria-label="Ajouter l’étape">＋</button></form></section><section class="pane-journal"><h3>Journal du projet</h3><div class="pane-entries"></div><form data-form="journal" class="inline-form"><textarea name="journal" rows="2" aria-label="Nouvelle entrée au journal" maxlength="20000" placeholder="Une avancée à consigner…" required>${e(state.drafts[p.id] || '')}</textarea><button type="submit" aria-label="Ajouter au journal">＋</button></form></section></div></div><div class="pane-more"><label>Objectif<textarea data-field="description" rows="2" maxlength="10000">${e(p.description)}</textarea></label><div class="pane-planning"><label>Priorité<select data-field="priority">${options(PRIORITY, p.priority)}</select></label><label>Échéance<input type="date" data-field="due" value="${e(p.due)}"></label></div></div></div><div class="done-overlay" hidden><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36"/><path d="m23 40 12 12 23-25"/></svg><strong>C’est fait.</strong><span>Projet terminé</span><div><button data-action="resume">Reprendre</button><button data-open="${e(p.id)}">Consulter la fiche</button></div></div></div>`;
   $('[data-field="category"]', card).value = p.category;
   updateCardDetails(card, p); return card;
 }
 function updateCardDetails(card, p) {
-  $('.card-open', card).textContent = p.title; card.setAttribute('aria-label', p.title);
+  syncCardTitle(card, p);
   for (const field of fields) { const input = $(`[data-field="${field}"]`, card); if (input && document.activeElement !== input) { if (field === 'category') input.innerHTML = categoryOptions(p.category); input.value = p[field]; } }
   card.classList.toggle('is-done', p.status === 'done');
   $('.done-overlay', card).hidden = p.status !== 'done'; $('.pane-scroll', card).inert = p.status === 'done';
@@ -149,6 +149,7 @@ $('#project-title').addEventListener('input', () => { if ($('#project-title').va
 $('#close-project').onclick = () => $('#project-dialog').close();
 $('#new-project').onclick = () => openProject();
 $('#project-grid').onclick = event => {
+  const rename = event.target.closest('[data-rename]'); if (rename) { startTitleEdit(rename.closest('.project-card')); return; }
   const button = event.target.closest('[data-open]'); if (button) { openProject(button.dataset.open); return; }
   const card = event.target.closest('.project-card'); if (!card) return; const p = state.projects.find(p => p.id === card.dataset.id);
   if (event.target.closest('[data-action="resume"]')) { p.status = 'active'; p.updatedAt = now(); save(); updateCardDetails(card, p); render(); $('[data-field="status"]', card)?.focus(); }
@@ -219,5 +220,143 @@ $('#import-file').onchange = async event => {
   catch (error) { toast('Import refusé : ' + error.message); }
   event.target.value = '';
 };
+// Project order lives in state.projects, so existing backups and Markdown keep it too.
+function syncCardTitle(card, project) {
+  $('.card-open', card).textContent = project.title;
+  $('.card-open', card).setAttribute('aria-label', project.title);
+  card.setAttribute('aria-label', project.title);
+  $('.drag-handle', card).setAttribute('aria-label', `Déplacer ${project.title}`);
+  $('.expand-button', card).setAttribute('aria-label', `Agrandir ${project.title}`);
+  const editor = $('.title-editor', card);
+  if (editor.hidden) editor.value = project.title;
+}
+function startTitleEdit(card) {
+  const project = state.projects.find(p => p.id === card.dataset.id), editor = $('.title-editor', card);
+  editor.dataset.original = project.title; editor.value = project.title;
+  $('.card-open', card).hidden = true; editor.hidden = false;
+  editor.removeAttribute('aria-invalid'); editor.focus(); editor.select();
+}
+function finishTitleEdit(editor, cancel = false) {
+  if (editor.hidden) return;
+  const card = editor.closest('.project-card'), project = state.projects.find(p => p.id === card.dataset.id);
+  const title = cancel ? editor.dataset.original : editor.value.trim();
+  if (title) { project.title = title; project.updatedAt = now(); save(); }
+  else toast('Le titre ne peut pas être vide. Le dernier titre a été conservé.');
+  editor.hidden = true; editor.removeAttribute('aria-invalid'); $('.card-open', card).hidden = false;
+  syncCardTitle(card, project);
+  renderJournal($('#journal-list'), state.journal); refreshJournalLabels(project);
+}
+function refreshJournalLabels(project) {
+  for (const option of $('#journal-project').options) if (option.value === project.id) option.textContent = project.title;
+}
+$('#project-grid').addEventListener('input', event => {
+  if (!event.target.matches('.title-editor')) return;
+  const editor = event.target, card = editor.closest('.project-card'), title = editor.value.trim();
+  editor.setAttribute('aria-invalid', String(!title));
+  if (!title) return;
+  const project = state.projects.find(p => p.id === card.dataset.id);
+  project.title = title; project.updatedAt = now(); save(); syncCardTitle(card, project);
+});
+$('#project-grid').addEventListener('focusout', event => { if (event.target.matches('.title-editor')) finishTitleEdit(event.target); });
+$('#project-grid').addEventListener('keydown', event => {
+  if (!event.target.matches('.title-editor') || event.isComposing) return;
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    event.preventDefault(); const card = event.target.closest('.project-card');
+    if (event.key === 'Enter' && !event.target.value.trim()) { toast('Saisissez un titre pour ce projet.'); return; }
+    finishTitleEdit(event.target, event.key === 'Escape'); $('.card-open', card).focus();
+  }
+});
+function moveProject(id, destination) {
+  const visible = $$('.project-card').map(card => card.dataset.id), from = visible.indexOf(id);
+  const to = Math.max(0, Math.min(destination, visible.length - 1));
+  if (from < 0 || from === to) return;
+  const visibleSet = new Set(visible); visible.splice(from, 1); visible.splice(to, 0, id);
+  const byId = new Map(state.projects.map(p => [p.id, p])); let index = 0;
+  // In a filtered view, only reorder visible slots; hidden projects stay in place.
+  state.projects = state.projects.map(p => visibleSet.has(p.id) ? byId.get(visible[index++]) : p);
+  const saved = save(); render();
+  const card = $$('.project-card').find(c => c.dataset.id === id); $('.drag-handle', card)?.focus({ preventScroll: true });
+  toast(`${byId.get(id).title} : position ${to + 1} sur ${visible.length}.${saved ? ' Ordre enregistré.' : ' Exportez pour conserver ce changement.'}`);
+}
+const orderMenu = document.createElement('div'); orderMenu.id = 'order-menu'; orderMenu.hidden = true;
+orderMenu.setAttribute('role', 'dialog'); orderMenu.setAttribute('aria-label', 'Ordre des cartes');
+orderMenu.innerHTML = '<p class="order-caption"></p><button data-move="first">Placer au début</button><button data-move="previous">Déplacer d’une place avant</button><button data-move="next">Déplacer d’une place après</button><button data-move="last">Placer à la fin</button><p class="order-help">Glisser la poignée ou utiliser Alt + flèches.</p>';
+document.body.append(orderMenu);
+let menuProject = null;
+function closeOrderMenu() {
+  orderMenu.hidden = true;
+  $$('.drag-handle[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+function openOrderMenu(handle) {
+  const card = handle.closest('.project-card'), cards = $$('.project-card'), index = cards.indexOf(card);
+  menuProject = card.dataset.id; $('.order-caption', orderMenu).textContent = `Position ${index + 1} sur ${cards.length}`;
+  for (const button of $$('[data-move]', orderMenu)) button.disabled = ['first', 'previous'].includes(button.dataset.move) ? index === 0 : index === cards.length - 1;
+  const box = handle.getBoundingClientRect(); orderMenu.hidden = false; handle.setAttribute('aria-expanded', 'true');
+  orderMenu.style.left = `${Math.max(8, Math.min(box.left, innerWidth - orderMenu.offsetWidth - 8))}px`;
+  orderMenu.style.top = `${Math.max(8, Math.min(box.bottom + 5, innerHeight - orderMenu.offsetHeight - 8))}px`;
+  $('button:not(:disabled)', orderMenu)?.focus();
+}
+orderMenu.onclick = event => {
+  const button = event.target.closest('[data-move]'); if (!button) return;
+  const cards = $$('.project-card'), current = cards.findIndex(c => c.dataset.id === menuProject);
+  const destination = { first: 0, previous: current - 1, next: current + 1, last: cards.length - 1 }[button.dataset.move];
+  closeOrderMenu(); moveProject(menuProject, destination);
+};
+document.addEventListener('pointerdown', event => { if (!orderMenu.contains(event.target) && !event.target.closest('.drag-handle')) closeOrderMenu(); });
+let drag = null, suppressClickUntil = 0;
+const dragHint = document.createElement('div'); dragHint.className = 'drag-hint'; dragHint.hidden = true; dragHint.setAttribute('aria-hidden', 'true'); document.body.append(dragHint);
+function clearDrag() {
+  if (!drag) return;
+  const handle = drag.handle, pointerId = drag.pointerId; drag = null;
+  if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+  $$('.is-dragging,.drop-before,.drop-after').forEach(c => c.classList.remove('is-dragging', 'drop-before', 'drop-after'));
+  dragHint.hidden = true; document.body.classList.remove('reordering');
+}
+$('#project-grid').addEventListener('pointerdown', event => {
+  const handle = event.target.closest('.drag-handle'); if (!handle || event.button !== 0 || !event.isPrimary) return;
+  closeOrderMenu();
+  drag = { handle, pointerId: event.pointerId, card: handle.closest('.project-card'), x: event.clientX, y: event.clientY, active: false, target: null };
+  handle.setPointerCapture(event.pointerId);
+});
+$('#project-grid').addEventListener('pointermove', event => {
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  if (!drag.active && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 7) return;
+  event.preventDefault(); drag.active = true; drag.card.classList.add('is-dragging'); document.body.classList.add('reordering');
+  dragHint.hidden = false; dragHint.textContent = $('.card-open', drag.card).textContent;
+  dragHint.style.left = `${Math.max(8, Math.min(event.clientX + 16, innerWidth - dragHint.offsetWidth - 8))}px`;
+  dragHint.style.top = `${Math.max(8, Math.min(event.clientY + 16, innerHeight - dragHint.offsetHeight - 8))}px`;
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.project-card');
+  $$('.drop-before,.drop-after').forEach(c => c.classList.remove('drop-before', 'drop-after'));
+  drag.target = target && target !== drag.card ? target : null;
+  if (drag.target) {
+    const cards = $$('.project-card'); drag.target.classList.add(cards.indexOf(drag.card) < cards.indexOf(target) ? 'drop-after' : 'drop-before');
+  }
+  if (innerWidth < 1000) { if (event.clientY > innerHeight - 60) window.scrollBy(0, 20); else if (event.clientY < 60) window.scrollBy(0, -20); }
+});
+$('#project-grid').addEventListener('pointerup', event => {
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  const { card, target, active } = drag, destination = $$('.project-card').indexOf(target);
+  if (active) suppressClickUntil = performance.now() + 300;
+  clearDrag(); if (active && target) moveProject(card.dataset.id, destination);
+});
+$('#project-grid').addEventListener('pointercancel', clearDrag);
+$('#project-grid').addEventListener('lostpointercapture', clearDrag);
+$('#project-grid').addEventListener('click', event => {
+  const handle = event.target.closest('.drag-handle'); if (!handle) return;
+  if (performance.now() < suppressClickUntil) { event.preventDefault(); return; }
+  if (!orderMenu.hidden && menuProject === handle.closest('.project-card').dataset.id) closeOrderMenu(); else openOrderMenu(handle);
+});
+$('#project-grid').addEventListener('keydown', event => {
+  if (!event.target.matches('.drag-handle') || !event.altKey || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  event.preventDefault(); const card = event.target.closest('.project-card'), cards = $$('.project-card');
+  moveProject(card.dataset.id, cards.indexOf(card) + (['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 1));
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (drag) { suppressClickUntil = performance.now() + 300; clearDrag(); event.preventDefault(); }
+  if (!orderMenu.hidden) { closeOrderMenu(); const card = $$('.project-card').find(c => c.dataset.id === menuProject); if (card) $('.drag-handle', card).focus(); }
+});
+window.addEventListener('resize', () => { closeOrderMenu(); clearDrag(); });
+
 $('#today').textContent = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 render();

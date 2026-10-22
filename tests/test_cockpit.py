@@ -80,7 +80,7 @@ with sync_playwright() as pw:
     page.locator('#project-category').select_option('Personnel')
     page.get_by_role('button', name='Créer le projet',exact=True).click()
     geometry(page, 7)
-    page.get_by_role('button', name='Essai éphémère',exact=True).click()
+    page.get_by_role('button', name='Agrandir Essai éphémère',exact=True).click()
     page.locator('#project-title').fill('Essai renommé')
     page.get_by_role('button', name='Fermer la fiche').click()
     page.locator('#search').fill('renomme'); expect(page.locator('.project-card')).to_have_count(1)
@@ -105,7 +105,7 @@ with sync_playwright() as pw:
         path=Path(tmp)/'backup.json'; dl.value.save_as(path); assert len(json.loads(path.read_text())['projects'])==7
         page.locator('.data-menu summary').click()
         page.locator('[data-view="projects"]').click()
-        page.get_by_role('button',name='Essai renommé',exact=True).click()
+        page.get_by_role('button',name='Agrandir Essai renommé',exact=True).click()
         page.locator('#delete-project').click();page.locator('#confirm-cancel').click()
         expect(page.locator('#project-dialog')).to_be_visible()
         page.locator('#delete-project').click();page.locator('#confirm-ok').click();geometry(page,6)

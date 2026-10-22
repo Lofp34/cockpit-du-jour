@@ -6,13 +6,22 @@ Application personnelle de suivi quotidien, en français, sans serveur applicati
 
 Tous les projets sont ouverts et modifiables directement. À partir de 1000 pixels de largeur, la mosaïque occupe la fenêtre disponible : six projets forment trois colonnes et deux rangées sur un écran large. L’agencement se recalcule selon la taille de la fenêtre et le nombre de projets visibles. Les panneaux ont la même surface, y compris pour des nombres impairs. Les contenus longs défilent dans leur propre panneau ; le tableau ne défile pas globalement. Un bouton permet de passer en plein écran.
 
-Chaque panneau expose le nom, la catégorie, le statut, la prochaine action, les notes, les étapes, le journal, l’objectif, la priorité et l’échéance. Le titre ou la flèche ouvre une fiche agrandie, notamment pour renommer ou supprimer un projet.
+Chaque panneau expose le nom, la catégorie, le statut, la prochaine action, les notes, les étapes, le journal, l’objectif, la priorité et l’échéance. Un clic sur le titre permet de le modifier directement. Entrée valide, Échap annule la modification en cours. La flèche ouvre une fiche agrandie, notamment pour supprimer un projet.
 
 Un projet terminé reste à sa place : son contenu reçoit un voile sombre et une grande coche verte. Son nom et son statut restent visibles. « Reprendre » le remet en cours ; « Consulter la fiche » ouvre son contenu sans changer le statut.
 
 Les catégories prédéfinies sont Commercial, Formation, Application, Méthode & outils, Suivi & accompagnement, Administration, Personnel et Autre. Une ancienne catégorie personnalisée est conservée jusqu’au choix d’une catégorie de la liste.
 
 Sur mobile et sur les fenêtres de moins de 1000 pixels, les panneaux s’empilent pour conserver des champs lisibles.
+
+## Déplacer et renommer les cartes
+
+- Faire glisser la poignée à six points en haut à gauche d’une carte vers sa nouvelle position. Le contour bleu indique la destination ; Échap ou un dépôt hors des cartes annule le déplacement.
+- Un clic sur la poignée permet aussi de choisir une position : début, fin, une place avant ou après. Au clavier, placer le focus sur la poignée et utiliser Alt + flèche gauche/droite (ou haut/bas).
+- Cliquer sur le titre pour l’éditer directement. Les titres vides sont refusés ; les caractères français sont conservés. La touche Échap restaure le titre du début de la modification.
+- L’ordre et les titres sont enregistrés automatiquement dans le navigateur et inclus dans les exports et les sauvegardes JSON.
+- Quand un filtre ou une recherche est actif, seuls les projets visibles changent d’ordre. Les projets masqués gardent leur position dans la liste complète.
+- Les cartes terminées restent déplaçables et renommables.
 
 ## Fonctionnalités
 
@@ -64,3 +73,5 @@ python3 -m http.server 4173 --directory docs
 ```
 
 Pour tester le site publié, passer son URL à la place de l’adresse locale. Les tests utilisent un contexte de navigateur isolé ; aucune note du navigateur personnel n’est modifiée.
+
+Le scénario complémentaire `tests/test_ordering.py` vérifie les gestes réels souris/tactiles, les commandes clavier, le renommage direct, les filtres et la conservation de l’ordre dans les sauvegardes. Il prend la même URL en argument que le scénario principal.
