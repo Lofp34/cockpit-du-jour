@@ -2,11 +2,23 @@
 
 Application personnelle de suivi quotidien, en français, sans serveur applicatif ni dépendance externe. Reconstitution à partir du cahier des charges de la conversation ChatGPT « Créer cockpit projets ».
 
+## Mosaïque pour grand écran
+
+Tous les projets sont ouverts et modifiables directement. À partir de 1000 pixels de largeur, la mosaïque occupe la fenêtre disponible : six projets forment trois colonnes et deux rangées sur un écran large. L’agencement se recalcule selon la taille de la fenêtre et le nombre de projets visibles. Les panneaux ont la même surface, y compris pour des nombres impairs. Les contenus longs défilent dans leur propre panneau ; le tableau ne défile pas globalement. Un bouton permet de passer en plein écran.
+
+Chaque panneau expose le nom, la catégorie, le statut, la prochaine action, les notes, les étapes, le journal, l’objectif, la priorité et l’échéance. Le titre ou la flèche ouvre une fiche agrandie, notamment pour renommer ou supprimer un projet.
+
+Un projet terminé reste à sa place : son contenu reçoit un voile sombre et une grande coche verte. Son nom et son statut restent visibles. « Reprendre » le remet en cours ; « Consulter la fiche » ouvre son contenu sans changer le statut.
+
+Les catégories prédéfinies sont Commercial, Formation, Application, Méthode & outils, Suivi & accompagnement, Administration, Personnel et Autre. Une ancienne catégorie personnalisée est conservée jusqu’au choix d’une catégorie de la liste.
+
+Sur mobile et sur les fenêtres de moins de 1000 pixels, les panneaux s’empilent pour conserver des champs lisibles.
+
 ## Fonctionnalités
 
 - Six projets initiaux : Vaisala, Training Creator Compagnons du Devoir, Training commercial vocal, Skills BMAD, Formation Septéo et Suivi Septéo Avocats.
-- Création, modification et suppression de cartes ; statuts, priorités, échéances, objectifs et prochaine action.
-- Notes enregistrées automatiquement, étapes à cocher, recherche et filtres.
+- Création, modification et suppression de cartes ouvertes ; statuts, priorités, échéances, objectifs et prochaine action.
+- Saisie directe des notes enregistrées automatiquement, étapes à cocher, recherche et filtres.
 - Journal général et par projet, avec modification et suppression des entrées. Les brouillons du journal sont conservés.
 - Export intégral en Markdown : projets, notes, étapes, journal et brouillons.
 - Sauvegarde JSON et restauration validée, avec confirmation et téléchargement de l’état précédent.
@@ -32,13 +44,15 @@ python3 -m http.server 4173 --directory docs
 
 Ouvrir `http://localhost:4173`. Les données de cette adresse sont distinctes de celles du site GitHub Pages.
 
+La version mosaïque conserve la clé et le format de stockage de la version initiale. Les anciennes sauvegardes JSON restent compatibles ; aucun nettoyage ni remplacement des notes n’est effectué à la mise à jour.
+
 ## Publication
 
 GitHub Pages publie le dossier `docs` de la branche `main`. Il n’y a aucune compilation : `index.html`, `style.css`, `app.js` et `favicon.svg` constituent l’application. Les liens relatifs permettent une publication sous `/cockpit-du-jour/`.
 
 ## Vérification
 
-Le scénario `tests/test_cockpit.py` utilise Python et Playwright avec Chromium. Il vérifie la création, les modifications, les notes après rechargement, les étapes, le journal, la recherche, les exports, la restauration, les erreurs de stockage, la protection des saisies HTML et la mise en page mobile.
+Le scénario `tests/test_cockpit.py` utilise Python et Playwright avec Chromium. Il vérifie la répartition à surfaces égales pour 1 à 11 projets, les dimensions Full HD et 2560 × 1440, la saisie directe sans perte de focus, la conservation des données de la version initiale, les catégories prédéfinies, le voile de fin de projet et la reprise, ainsi que les notes, étapes, journaux, exports, restaurations, conflits entre onglets, erreurs de stockage et l’affichage mobile.
 
 ```sh
 python3 -m venv .venv
