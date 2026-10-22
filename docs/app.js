@@ -17,7 +17,7 @@ const seed = () => ({ version: 1, updatedAt: now(), projects: [
   ['Skills BMAD', 'Méthode & outils', 'Suivre le skill BMAD générique et sa déclinaison pour l’application.', 'Faire le point sur les deux skills'],
   ['Formation Septéo', 'Formation', 'Construire et suivre le programme de formation Septéo.', 'Vérifier le programme et les supports'],
   ['Suivi Septéo Avocats', 'Suivi & accompagnement', 'Organiser le suivi de formation avec la manager.', 'Préparer le point de suivi des apprenants']
-].map(([title, category, description, next]) => ({ id: uid(), title, category, description, next, status: 'active', priority: 'normal', due: '', notes: '', steps: [], createdAt: now(), updatedAt: now() })), journal: [], drafts: {} });
+].map(([title, category, description, next]) => ({ id: uid(), title, category, description, next, status: 'active', priority: 'normal', due: '', notes: '', conversationUrl: '', steps: [], createdAt: now(), updatedAt: now() })), journal: [], drafts: {} });
 function validDate(s) { return typeof s === 'string' && Number.isFinite(Date.parse(s)); }
 function validate(data) {
   if (!data || data.version !== 1 || !Array.isArray(data.projects) || !Array.isArray(data.journal) || data.projects.length > 1000 || data.journal.length > 20000) throw Error('Format de sauvegarde non reconnu.');
@@ -28,7 +28,7 @@ function validate(data) {
     if (!p || !p.title?.trim() || !Object.hasOwn(STATUS, p.status) || !Object.hasOwn(PRIORITY, p.priority) || !Array.isArray(p.steps) || p.steps.length > 5000 || !validDate(p.createdAt) || !validDate(p.updatedAt)) throw Error('Une carte est invalide.');
     const due = string(p.due, 10);
     if (due && (!/^\d{4}-\d{2}-\d{2}$/.test(due) || !validDate(due) || new Date(due).toISOString().slice(0, 10) !== due)) throw Error('Échéance invalide.');
-    return { id: id(p.id), title: string(p.title, 160), category: string(p.category, 60), description: string(p.description, 10000), next: string(p.next, 500), notes: string(p.notes), status: p.status, priority: p.priority, due, createdAt: p.createdAt, updatedAt: p.updatedAt, steps: p.steps.map(s => { if (!s || typeof s.done !== 'boolean') throw Error('Étape invalide.'); return { id: id(s.id), text: string(s.text, 500), done: s.done }; }) };
+    return { id: id(p.id), title: string(p.title, 160), category: string(p.category, 60), description: string(p.description, 10000), next: string(p.next, 500), conversationUrl: string(p.conversationUrl ?? '', 2048), notes: string(p.notes), status: p.status, priority: p.priority, due, createdAt: p.createdAt, updatedAt: p.updatedAt, steps: p.steps.map(s => { if (!s || typeof s.done !== 'boolean') throw Error('Étape invalide.'); return { id: id(s.id), text: string(s.text, 500), done: s.done }; }) };
   });
   const journal = data.journal.map(j => { if (!j || !validDate(j.createdAt) || (j.projectId !== null && typeof j.projectId !== 'string')) throw Error('Entrée de journal invalide.'); return { id: id(j.id), projectId: j.projectId, projectTitle: string(j.projectTitle, 160), text: string(j.text, 20000), createdAt: j.createdAt, updatedAt: validDate(j.updatedAt) ? j.updatedAt : j.createdAt }; });
   const drafts = {}; if (data.drafts && typeof data.drafts === 'object') for (const [key, value] of Object.entries(data.drafts)) { if (key === 'global' || projects.some(p => p.id === key)) drafts[key] = string(value, 20000); }
@@ -74,17 +74,46 @@ function render() {
 function options(values, value) { return Object.entries(values).map(([key, text]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${text}</option>`).join(''); }
 function createCard(p) {
   const card = document.createElement('article'); card.className = 'project-card'; card.dataset.id = p.id; card.setAttribute('aria-label', p.title);
-  card.innerHTML = `<header class="pane-header"><div class="pane-heading"><button class="drag-handle" aria-label="Déplacer ${e(p.title)}" aria-haspopup="dialog" title="Glisser pour déplacer · Cliquer pour choisir une position · Alt + flèches">⠿</button><h2><button class="card-open" aria-label="${e(p.title)}" data-rename="${e(p.id)}" title="Modifier le titre">${e(p.title)}</button><input class="title-editor" aria-label="Titre du projet" maxlength="160" autocomplete="off" hidden></h2><button class="expand-button" data-open="${e(p.id)}" aria-label="Agrandir ${e(p.title)}">↗</button></div><div class="pane-meta"><select data-field="category" aria-label="Catégorie">${categoryOptions(p.category)}</select><select data-field="status" aria-label="Statut">${options(STATUS, p.status)}</select></div></header><div class="pane-content"><div class="pane-scroll"><label class="next-label">Prochaine action<textarea data-field="next" rows="2" maxlength="500" placeholder="La prochaine action concrète…">${e(p.next)}</textarea></label><div class="pane-columns"><section class="notes-section"><label>Notes persistantes<textarea data-field="notes" rows="5" maxlength="100000" placeholder="Où en êtes-vous ? Décisions, contexte, points à reprendre…">${e(p.notes)}</textarea></label></section><div class="tracking-column"><section class="steps-section"><div class="section-label"><h3>Étapes</h3><span class="pane-step-count"></span></div><ul class="pane-steps"></ul><form data-form="step" class="inline-form"><input name="step" aria-label="Nouvelle étape" maxlength="500" placeholder="Ajouter une étape…" required><button type="submit" aria-label="Ajouter l’étape">＋</button></form></section><section class="pane-journal"><h3>Journal du projet</h3><div class="pane-entries"></div><form data-form="journal" class="inline-form"><textarea name="journal" rows="2" aria-label="Nouvelle entrée au journal" maxlength="20000" placeholder="Une avancée à consigner…" required>${e(state.drafts[p.id] || '')}</textarea><button type="submit" aria-label="Ajouter au journal">＋</button></form></section></div></div><div class="pane-more"><label>Objectif<textarea data-field="description" rows="2" maxlength="10000">${e(p.description)}</textarea></label><div class="pane-planning"><label>Priorité<select data-field="priority">${options(PRIORITY, p.priority)}</select></label><label>Échéance<input type="date" data-field="due" value="${e(p.due)}"></label></div></div></div><div class="done-overlay" hidden><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36"/><path d="m23 40 12 12 23-25"/></svg><strong>C’est fait.</strong><span>Projet terminé</span><div><button data-action="resume">Reprendre</button><button data-open="${e(p.id)}">Consulter la fiche</button></div></div></div>`;
+  card.innerHTML = `<header class="pane-header"><div class="pane-heading"><button class="drag-handle" aria-label="Déplacer ${e(p.title)}" aria-haspopup="dialog" title="Glisser pour déplacer · Cliquer pour choisir une position · Alt + flèches">⠿</button><h2><button class="card-open" aria-label="${e(p.title)}" data-rename="${e(p.id)}" title="Modifier le titre">${e(p.title)}</button><input class="title-editor" aria-label="Titre du projet" maxlength="160" autocomplete="off" hidden></h2><button class="expand-button" data-open="${e(p.id)}" aria-label="Agrandir ${e(p.title)}">↗</button></div><div class="pane-meta"><select data-field="category" aria-label="Catégorie">${categoryOptions(p.category)}</select><select data-field="status" aria-label="Statut">${options(STATUS, p.status)}</select></div></header><div class="pane-content"><div class="pane-scroll"><div class="pane-columns"><div class="writing-column"><label class="next-label">Prochaine action<textarea data-field="next" rows="2" maxlength="500" placeholder="La prochaine action concrète…">${e(p.next)}</textarea></label><section class="notes-section"><label>Notes persistantes<textarea data-field="notes" rows="5" maxlength="100000" placeholder="Où en êtes-vous ? Décisions, contexte, points à reprendre…">${e(p.notes)}</textarea></label></section><section class="pane-journal"><h3>Journal du projet</h3><div class="pane-entries"></div><form data-form="journal" class="inline-form"><textarea name="journal" rows="2" aria-label="Nouvelle entrée au journal" maxlength="20000" placeholder="Une avancée à consigner…" required>${e(state.drafts[p.id] || '')}</textarea><button type="submit" aria-label="Ajouter au journal">＋</button></form></section></div><div class="tracking-column"><section class="conversation-section"><label>Agent ou conversation<input type="url" data-field="conversationUrl" maxlength="2048" placeholder="Coller le lien https://…" autocomplete="off" spellcheck="false"></label><a class="conversation-link" target="_blank" rel="noopener noreferrer" hidden>Ouvrir la conversation ↗</a><small class="link-error" hidden>Utilisez une adresse complète commençant par https:// ou http://.</small></section><section class="steps-section"><div class="section-label"><h3>Étapes</h3><span class="pane-step-count"></span></div><ul class="pane-steps"></ul><form data-form="step" class="inline-form"><input name="step" aria-label="Nouvelle étape" maxlength="500" placeholder="Ajouter une étape…" required><button type="submit" aria-label="Ajouter l’étape">＋</button></form></section></div></div><div class="pane-more"><label>Objectif<textarea data-field="description" rows="2" maxlength="10000">${e(p.description)}</textarea></label><div class="pane-planning"><label>Priorité<select data-field="priority">${options(PRIORITY, p.priority)}</select></label><label>Échéance<input type="date" data-field="due" value="${e(p.due)}"></label></div></div></div><div class="done-overlay" hidden><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36"/><path d="m23 40 12 12 23-25"/></svg><strong>C’est fait.</strong><span>Projet terminé</span><div><button data-action="resume">Reprendre</button><button data-open="${e(p.id)}">Consulter la fiche</button></div></div></div>`;
   $('[data-field="category"]', card).value = p.category;
   updateCardDetails(card, p); return card;
 }
+function safeConversationUrl(value) {
+  try { const url = new URL(value.trim()); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : ''; }
+  catch { return ''; }
+}
+function updateConversationLink(card, p) {
+  const url = safeConversationUrl(p.conversationUrl || ''), link = $('.conversation-link', card);
+  link.hidden = !url;
+  if (url) link.href = url; else link.removeAttribute('href');
+  const invalid = !!p.conversationUrl?.trim() && !url;
+  $('.link-error', card).hidden = !invalid;
+  $('[data-field="conversationUrl"]', card).setAttribute('aria-invalid', String(invalid));
+}
+function stepControls(step, index, total) {
+  return `<span class="step-order"><button type="button" data-move-step="${e(step.id)}" data-direction="-1" aria-label="Monter l’étape ${e(step.text)}" title="Monter l’étape" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-move-step="${e(step.id)}" data-direction="1" aria-label="Descendre l’étape ${e(step.text)}" title="Descendre l’étape" ${index === total - 1 ? 'disabled' : ''}>↓</button></span>`;
+}
+function moveStep(project, button, root) {
+  const id = button.dataset.moveStep, direction = Number(button.dataset.direction);
+  const index = project.steps.findIndex(step => step.id === id), target = index + direction;
+  if (index < 0 || target < 0 || target >= project.steps.length) return;
+  const list = $('.pane-steps, #steps', root), scrollTop = list.scrollTop;
+  project.steps.splice(target, 0, project.steps.splice(index, 1)[0]);
+  project.updatedAt = now(); const saved = save();
+  if (root.matches('.project-card')) updateCardDetails(root, project); else renderDetails();
+  list.scrollTop = scrollTop;
+  const buttons = $$('[data-move-step]', root).filter(b => b.dataset.moveStep === id && !b.disabled);
+  (buttons.find(b => Number(b.dataset.direction) === direction) || buttons[0])?.focus({ preventScroll: true });
+  toast(saved ? `Étape déplacée en position ${target + 1} sur ${project.steps.length}.` : 'Étape déplacée ; exportez vos données pour la conserver.');
+}
 function updateCardDetails(card, p) {
+  updateConversationLink(card, p);
   syncCardTitle(card, p);
   for (const field of fields) { const input = $(`[data-field="${field}"]`, card); if (input && document.activeElement !== input) { if (field === 'category') input.innerHTML = categoryOptions(p.category); input.value = p[field]; } }
   card.classList.toggle('is-done', p.status === 'done');
   $('.done-overlay', card).hidden = p.status !== 'done'; $('.pane-scroll', card).inert = p.status === 'done';
   $('.pane-step-count', card).textContent = `${p.steps.filter(s => s.done).length}/${p.steps.length}`;
-  $('.pane-steps', card).innerHTML = p.steps.length ? p.steps.map(s => `<li><label><input type="checkbox" data-pane-step="${e(s.id)}" ${s.done ? 'checked' : ''}><span>${e(s.text)}</span></label><button data-remove-step="${e(s.id)}" aria-label="Supprimer l’étape ${e(s.text)}">×</button></li>`).join('') : '<li class="muted">Aucune étape définie.</li>';
+  $('.pane-steps', card).innerHTML = p.steps.length ? p.steps.map((s, index) => `<li><label><input type="checkbox" data-pane-step="${e(s.id)}" ${s.done ? 'checked' : ''}><span>${e(s.text)}</span></label>${stepControls(s, index, p.steps.length)}<button data-remove-step="${e(s.id)}" aria-label="Supprimer l’étape ${e(s.text)}">×</button></li>`).join('') : '<li class="muted">Aucune étape définie.</li>';
   renderJournal($('.pane-entries', card), state.journal.filter(j => j.projectId === p.id));
   const draft = $('[name="journal"]', card); if (document.activeElement !== draft) draft.value = state.drafts[p.id] || '';
 }
@@ -121,10 +150,10 @@ function renderDetails() {
   refreshCards();
   const p = selected(); if (!p) return;
   const n = p.steps.filter(s => s.done).length; $('#step-count').textContent = `${n} / ${p.steps.length} terminées`;
-  $('#steps').innerHTML = p.steps.map(s => `<li><label><input type="checkbox" data-step="${e(s.id)}" ${s.done ? 'checked' : ''}><span>${e(s.text)}</span></label><button type="button" data-delete-step="${e(s.id)}" aria-label="Supprimer l’étape ${e(s.text)}">×</button></li>`).join('');
+  $('#steps').innerHTML = p.steps.map((s, index) => `<li><label><input type="checkbox" data-step="${e(s.id)}" ${s.done ? 'checked' : ''}><span>${e(s.text)}</span></label>${stepControls(s, index, p.steps.length)}<button type="button" data-delete-step="${e(s.id)}" aria-label="Supprimer l’étape ${e(s.text)}">×</button></li>`).join('');
   renderJournal($('#project-journal-list'), state.journal.filter(j => j.projectId === p.id));
 }
-const fields = ['title', 'category', 'status', 'priority', 'due', 'description', 'next', 'notes'];
+const fields = ['title', 'category', 'status', 'priority', 'due', 'description', 'next', 'notes', 'conversationUrl'];
 function openProject(id = null) {
   selectedId = id; const p = selected(); $('#project-form').reset(); $('#project-category').innerHTML = categoryOptions(p?.category || '');
   for (const f of fields) $('#project-' + f).value = p?.[f] ?? (f === 'status' ? 'active' : f === 'priority' ? 'normal' : '');
@@ -153,12 +182,13 @@ $('#project-grid').onclick = event => {
   const button = event.target.closest('[data-open]'); if (button) { openProject(button.dataset.open); return; }
   const card = event.target.closest('.project-card'); if (!card) return; const p = state.projects.find(p => p.id === card.dataset.id);
   if (event.target.closest('[data-action="resume"]')) { p.status = 'active'; p.updatedAt = now(); save(); updateCardDetails(card, p); render(); $('[data-field="status"]', card)?.focus(); }
+  const move = event.target.closest('[data-move-step]'); if (move) { moveStep(p, move, card); return; }
   const del = event.target.closest('[data-remove-step]'); if (del) confirm('Supprimer cette étape ?', () => { p.steps = p.steps.filter(s => s.id !== del.dataset.removeStep); p.updatedAt = now(); save(); updateCardDetails(card, p); });
 };
 $('#project-grid').addEventListener('input', event => {
   const card = event.target.closest('.project-card'); if (!card) return; const p = state.projects.find(p => p.id === card.dataset.id);
   const field = event.target.dataset.field;
-  if (field && fields.includes(field)) { if (field === 'category' && event.target.value && !CATEGORIES.includes(event.target.value)) return; p[field] = event.target.value; p.updatedAt = now(); save(); }
+  if (field && fields.includes(field)) { if (field === 'category' && event.target.value && !CATEGORIES.includes(event.target.value)) return; p[field] = event.target.value; p.updatedAt = now(); save(); if (field === 'conversationUrl') updateConversationLink(card, p); }
   if (event.target.name === 'journal') { state.drafts[p.id] = event.target.value; save(); }
 });
 $('#project-grid').addEventListener('change', event => {
@@ -185,7 +215,7 @@ let confirmAction;
 function confirm(message, action) { $('#confirm-message').textContent = message; confirmAction = action; $('#confirm-dialog').showModal(); $('#confirm-cancel').focus(); }
 $('#confirm-cancel').onclick = () => $('#confirm-dialog').close();
 $('#confirm-ok').onclick = () => { $('#confirm-dialog').close(); confirmAction?.(); confirmAction = null; };
-$('#steps').onclick = event => { const button = event.target.closest('[data-delete-step]'); if (!button) return; const p = selected(); confirm('Supprimer cette étape ?', () => { p.steps = p.steps.filter(s => s.id !== button.dataset.deleteStep); p.updatedAt = now(); save(); renderDetails(); render(); }); };
+$('#steps').onclick = event => { const move = event.target.closest('[data-move-step]'); if (move) { moveStep(selected(), move, $('#project-dialog')); return; } const button = event.target.closest('[data-delete-step]'); if (!button) return; const p = selected(); confirm('Supprimer cette étape ?', () => { p.steps = p.steps.filter(s => s.id !== button.dataset.deleteStep); p.updatedAt = now(); save(); renderDetails(); render(); }); };
 $('#delete-project').onclick = () => { const p = selected(); confirm(`Supprimer « ${p.title} » et ses notes ? Les entrées du journal seront conservées.`, () => { for (const j of state.journal) if (j.projectId === p.id) { j.projectTitle = p.title; j.projectId = null; } state.projects = state.projects.filter(x => x.id !== p.id); delete state.drafts[p.id]; save(); $('#project-dialog').close(); selectedId = null; render(); toast('Projet supprimé. Son journal est conservé.'); }); };
 function addEntry(text, projectId) { if (!text.trim()) return false; const p = state.projects.find(p => p.id === projectId); state.journal.push({ id: uid(), projectId: p?.id || null, projectTitle: p?.title || '', text: text.trim(), createdAt: now(), updatedAt: now() }); return true; }
 $('#global-journal-form').onsubmit = event => { event.preventDefault(); if (!addEntry($('#global-journal').value, $('#journal-project').value)) return; $('#global-journal').value = ''; delete state.drafts.global; const saved = save(); render(); toast(saved ? 'Entrée ajoutée au journal.' : 'Entrée ajoutée ; exportez pour la conserver.'); };
@@ -202,7 +232,7 @@ const md = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 function markdown() {
   const lines = ['# Cockpit du jour', '', `Exporté le ${dateLabel(now())}.`, '', '> Bilan manuel : les statuts et notes reflètent vos saisies, sans synchronisation avec vos agents.', '', '## Projets', ''];
   for (const p of state.projects) {
-    lines.push(`### ${md(p.title)}`, '', `- **Catégorie :** ${md(p.category)}`, `- **Statut :** ${STATUS[p.status]}`, `- **Priorité :** ${PRIORITY[p.priority]}`, `- **Échéance :** ${p.due || 'Non définie'}`, `- **Créé le :** ${dateLabel(p.createdAt)}`, `- **Mis à jour le :** ${dateLabel(p.updatedAt)}`, '', '**Objectif**', '', md(p.description) || 'À compléter.', '', '**Prochaine action**', '', md(p.next) || 'À définir.', '', '**Étapes**', '', ...(p.steps.length ? p.steps.map(s => `- [${s.done ? 'x' : ' '}] ${md(s.text).replace(/\n/g, '\n  ')}`) : ['Aucune étape définie.']), '', '**Notes**', '', md(p.notes) || 'Aucune note.', '');
+    lines.push(`### ${md(p.title)}`, '', `- **Catégorie :** ${md(p.category)}`, `- **Statut :** ${STATUS[p.status]}`, `- **Priorité :** ${PRIORITY[p.priority]}`, `- **Échéance :** ${p.due || 'Non définie'}`, `- **Créé le :** ${dateLabel(p.createdAt)}`, `- **Mis à jour le :** ${dateLabel(p.updatedAt)}`, '', '**Objectif**', '', md(p.description) || 'À compléter.', '', '**Prochaine action**', '', md(p.next) || 'À définir.', '', '**Agent ou conversation**', '', md(p.conversationUrl || '') || 'Aucun lien défini.', '', '**Étapes**', '', ...(p.steps.length ? p.steps.map(s => `- [${s.done ? 'x' : ' '}] ${md(s.text).replace(/\n/g, '\n  ')}`) : ['Aucune étape définie.']), '', '**Notes**', '', md(p.notes) || 'Aucune note.', '');
   }
   lines.push('## Journal de bord', '');
   for (const j of [...state.journal].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) lines.push(`### ${dateLabel(j.createdAt)} — ${md(state.projects.find(p => p.id === j.projectId)?.title || j.projectTitle || 'Journal général')}`, '', md(j.text), '');

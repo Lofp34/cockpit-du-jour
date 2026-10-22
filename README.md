@@ -23,6 +23,14 @@ Sur mobile et sur les fenêtres de moins de 1000 pixels, les panneaux s’empile
 - Quand un filtre ou une recherche est actif, seuls les projets visibles changent d’ordre. Les projets masqués gardent leur position dans la liste complète.
 - Les cartes terminées restent déplaçables et renommables.
 
+## Organiser les étapes et ouvrir une conversation
+
+Dans chaque carte, la colonne de gauche regroupe la prochaine action, les notes persistantes, le journal et la saisie d’une avancée. À droite se trouvent le lien vers l’agent ou la conversation, les étapes et le champ d’ajout d’une étape.
+
+Coller une adresse complète `https://…` dans « Agent ou conversation » pour afficher le lien vert « Ouvrir la conversation ». Le lien est modifiable et s’ouvre dans un nouvel onglet. Il est conservé dans le navigateur, les sauvegardes JSON et l’export Markdown. Les anciennes sauvegardes restent compatibles.
+
+Les flèches ↑ et ↓ de chaque étape permettent de la monter ou de la descendre, également dans la fiche agrandie. L’ordre est enregistré automatiquement, sans modifier les cases cochées. Les commandes aux extrémités sont désactivées ; les boutons fonctionnent aussi au clavier.
+
 ## Fonctionnalités
 
 - Six projets initiaux : Vaisala, Training Creator Compagnons du Devoir, Training commercial vocal, Skills BMAD, Formation Septéo et Suivi Septéo Avocats.
@@ -75,3 +83,5 @@ python3 -m http.server 4173 --directory docs
 Pour tester le site publié, passer son URL à la place de l’adresse locale. Les tests utilisent un contexte de navigateur isolé ; aucune note du navigateur personnel n’est modifiée.
 
 Le scénario complémentaire `tests/test_ordering.py` vérifie les gestes réels souris/tactiles, les commandes clavier, le renommage direct, les filtres et la conservation de l’ordre dans les sauvegardes. Il prend la même URL en argument que le scénario principal.
+
+Le scénario `tests/test_steps_links.py` vérifie la disposition des deux colonnes, les déplacements d’étapes à la souris et au clavier, la persistance des cases cochées, les liens vers les conversations, les exports et la restauration.
